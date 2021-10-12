@@ -1,0 +1,107 @@
+convert:
+  cmd: python -m spacy run convert
+  script:
+    - python scripts/convert.py en assets/train.json corpus/train.spacy
+    - python scripts/convert.py en assets/dev.json corpus/dev.spacy
+    - python scripts/convert_jsonl.py en assets/zipcodes_train.jsonl corpus/zipcodes_train.spacy
+    - python scripts/convert_jsonl.py en assets/zipcodes_dev.jsonl corpus/zipcodes_dev.spacy
+  deps:
+    - path: assets/train.json
+      md5: 5aef985b36ab55da02fe9b06ed25a73f
+    - path: assets/dev.json
+      md5: d92d6acbdbaacd11f748413cb2abbd9c
+    - path: assets/zipcodes_train.jsonl
+      md5: ff2ca648e03deba8880acd180608d893
+    - path: assets/zipcodes_dev.jsonl
+      md5: c231369a6d4432a103adc26ebeb65001
+    - path: scripts/convert.py
+      md5: c7cd3994f4314f5f66757a21ff4b1d65
+    - path: scripts/convert_jsonl.py
+      md5: 386b13bf08939c330dc157c7b6c24982
+  outs:
+    - path: corpus/train.spacy
+      md5: 568d40b80e6fe899f1562e200b0f2f28
+    - path: corpus/dev.spacy
+      md5: 75dfd329dd0e6d85e51fc381af37cba9
+    - path: corpus/zipcodes_train.spacy
+      md5: a75d10a818d7a98022a922185d971200
+    - path: corpus/zipcodes_dev.spacy
+      md5: 8ca12cdc2d089d22c064a5b607158622
+  spacy_version: 3.1.2
+  spacy_git_version: e1f88de72
+create-config:
+  cmd: python -m spacy run create-config
+  script:
+    - python -m spacy init config --lang en --pipeline ner configs/config.cfg --force
+  deps: []
+  outs:
+    - path: configs/config.cfg
+      md5: e938fc92152a2cebb943f288fe836c0e
+  spacy_version: 3.1.1
+  spacy_git_version: ffaead8fe
+train:
+  cmd: python -m spacy run train
+  script:
+    - python -m spacy train configs/config.cfg --output training/ --paths.train corpus/zipcodes_train.spacy
+      --paths.dev corpus/zipcodes_dev.spacy --training.eval_frequency 10 --training.patience
+      50 --gpu-id -1
+  deps:
+    - path: configs/config.cfg
+      md5: e938fc92152a2cebb943f288fe836c0e
+    - path: corpus/train.spacy
+      md5: 568d40b80e6fe899f1562e200b0f2f28
+    - path: corpus/dev.spacy
+      md5: 75dfd329dd0e6d85e51fc381af37cba9
+    - path: corpus/zipcodes_train.spacy
+      md5: a75d10a818d7a98022a922185d971200
+    - path: corpus/zipcodes_dev.spacy
+      md5: 8ca12cdc2d089d22c064a5b607158622
+  outs:
+    - path: training/model-best
+      md5: 95fc93cb00710017546737a4dd70ed6b
+  spacy_version: 3.1.2
+  spacy_git_version: e1f88de72
+evaluate:
+  cmd: python -m spacy run evaluate
+  script:
+    - python -m spacy evaluate training/model-best corpus/zipcodes_dev.spacy --output
+      training/metrics.json
+  deps:
+    - path: corpus/dev.spacy
+      md5: 75dfd329dd0e6d85e51fc381af37cba9
+    - path: training/model-best
+      md5: 95fc93cb00710017546737a4dd70ed6b
+  outs:
+    - path: training/metrics.json
+      md5: 7d1cb238d173406fec4fc780344a1b76
+  spacy_version: 3.1.2
+  spacy_git_version: e1f88de72
+package:
+  cmd: python -m spacy run package
+  script:
+    - python -m spacy package training/model-best packages --name ner_demo --version
+      0.0.0 --force
+  deps:
+    - path: training/model-best
+      md5: 38f676a121edfedc6bc8a79173d13bd5
+  outs:
+    - path: packages/en_ner_demo-0.0.0/dist/en_ner_demo-0.0.0.tar.gz
+      md5: 16879dffd9693686e106b66ecf10d894
+  spacy_version: 3.1.1
+  spacy_git_version: ffaead8fe
+split:
+  cmd: python -m spacy run split
+  script:
+    - python scripts/split.py assets/zipcodes.jsonl assets/zipcodes_train.jsonl assets/zipcodes_dev.jsonl
+  deps:
+    - path: assets/zipcodes.jsonl
+      md5: 8119d84f36cfc8f52e5e74930576d919
+    - path: scripts/split.py
+      md5: 6869c231a304da2d69823c54e7fad362
+  outs:
+    - path: assets/zipcodes_train.spacy
+      md5: null
+    - path: assets/zipcodes_dev.spacy
+      md5: null
+  spacy_version: 3.1.2
+  spacy_git_version: e1f88de72
